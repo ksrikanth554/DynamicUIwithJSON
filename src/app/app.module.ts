@@ -1,5 +1,6 @@
-import { NgModule } from '@angular/core';
+import { NgModule,CUSTOM_ELEMENTS_SCHEMA } from '@angular/core';
 import { BrowserModule } from '@angular/platform-browser';
+import { BrowserAnimationsModule } from '@angular/platform-browser/animations';
 import { AppRoutingModule } from './app-routing.module';
 import { AppComponent } from './app.component';
 import { CommonModule } from '@angular/common';
@@ -11,16 +12,23 @@ import { MatDatepickerModule } from '@angular/material/datepicker';
 import { MatNativeDateModule } from '@angular/material/core';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatRadioModule } from '@angular/material/radio';
+import {MatCard} from '@angular/material/card'
+import { MatCardModule } from '@angular/material/card';
+import { MatTableModule } from '@angular/material/table';
 import { provideAnimationsAsync } from '@angular/platform-browser/animations/async';
 import { DynamicformcontrolComponent } from './components/dynamicformcontrol/dynamicformcontrol.component';
 import { HttpClientModule } from '@angular/common/http';
 import { ReactiveFormsModule } from '@angular/forms';
+import { FormsModule } from '@angular/forms';
+import { ExcelpivottabledataComponent } from './components/excelpivottabledata/excelpivottabledata.component';
+
 
 
 @NgModule({
   declarations: [
     AppComponent,
-    DynamicformcontrolComponent    
+    DynamicformcontrolComponent, 
+    ExcelpivottabledataComponent
   ],
   imports: [
     BrowserModule,
@@ -35,7 +43,10 @@ import { ReactiveFormsModule } from '@angular/forms';
     MatFormFieldModule,
     MatRadioModule,
     HttpClientModule,
-    ReactiveFormsModule
+    ReactiveFormsModule,
+    MatCardModule,
+    MatTableModule,
+    FormsModule
   ],
   providers: [
     provideAnimationsAsync()
