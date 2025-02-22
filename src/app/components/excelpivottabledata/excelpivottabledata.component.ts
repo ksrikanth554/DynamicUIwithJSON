@@ -6,10 +6,12 @@ import * as XLSX from 'xlsx';
   styleUrl: './excelpivottabledata.component.css'
 })
 export class ExcelpivottabledataComponent {
-  sheets: any[] = [];  // Store pivot tables as sheets
-  columns: string[] = [];  // Columns from the first sheet (to display options)
+  sheets: any[] = [];  // Store sheets (both pivot and normal)
+  columns: string[] = [];  // Columns for the selected sheet
   selectedColumns: string[] = [];  // Columns selected for display
   currentSheetIndex: number = 0;  // Index to track the active sheet
+  isPivotSheet: boolean[] = [];  // Array to track if sheet is a pivot
+  pivotData: any[] = []; // Store formatted pivot data for detailed view
 
   constructor() {}
 
@@ -25,38 +27,82 @@ export class ExcelpivottabledataComponent {
         this.sheets = wb.SheetNames.map((sheetName: string) => {
           const ws = wb.Sheets[sheetName];
           const data = XLSX.utils.sheet_to_json(ws, { header: 1 });
-          const columns = data[0];
-          const rows = data.slice(1);
-          return { sheetName, columns, rows };
+
+          // Check if it's a pivot sheet based on its structure
+          const isPivot = this.isPivotSheetData(data);
+          
+          // Format the pivot data if it's a pivot sheet
+          let formattedData = [];
+          if (isPivot) {
+            formattedData = this.formatPivotData(data);
+          }
+
+          // Track if the sheet is pivot or not
+          this.isPivotSheet.push(isPivot);
+
+          return { sheetName, columns: data[0], rows: data.slice(1), formattedData };
         });
 
-        // Initialize with the first sheet's columns and rows
-        this.columns = this.sheets[0].columns;
-        this.selectedColumns = [...this.columns];
-        this.updateDisplayedData();
+        if (this.sheets.length > 0) {
+          // Initialize with the first sheet's columns and rows
+          this.columns = this.sheets[0].columns;
+          this.selectedColumns = [...this.columns];
+          this.updateDisplayedData();
+        }
       };
       reader.readAsBinaryString(file);
     }
+  }
+
+  // Determine if the sheet is a pivot sheet based on its structure
+  isPivotSheetData(data: any): boolean {
+    return data.length > 1 && data[0].length > 1 && data[1].length > 1;
+  }
+
+  // Format pivot table data into a usable structure for display
+  formatPivotData(data: any): any[] {
+    const headers = data[0];
+    const rowCategories = [];
+    const columnCategories = headers.slice(1); // excluding the first column which represents rows
+    const pivotValues:any = [];
+
+    // Iterate through the rows and extract pivot data
+    for (let i = 1; i < data.length; i++) {
+      const row = data[i];
+      rowCategories.push(row[0]); // Row categories are in the first column
+      pivotValues.push(row.slice(1)); // Pivot values are in the rest of the row
+    }
+
+    // Return the pivot data in a structured way
+    return rowCategories.map((category, index) => {
+      let formattedRow:any = { category };
+      columnCategories.forEach((col:any, colIndex:any) => {
+        formattedRow[col] = pivotValues[index][colIndex] || 0; // Handle missing values
+      });
+      return formattedRow;
+    });
   }
 
   // Update data for display based on selected columns
   updateDisplayedData(): void {
     if (this.sheets.length > 0) {
       const sheet = this.sheets[this.currentSheetIndex];
-      const selectedIndices = this.selectedColumns.map((col) =>
-        sheet.columns.indexOf(col)
-      );
-      sheet.displayedData = sheet.rows.map((row:any) =>
-        selectedIndices.map((index) => row[index])
-      );
+      if (this.isPivotSheet[this.currentSheetIndex]) {
+        this.pivotData = sheet.formattedData;
+      } else {
+        this.pivotData = sheet.rows;
+      }
     }
   }
 
-  // Switch between different pivot tables (sheets)
+  // Switch between different sheets (both pivot and normal)
   changeSheet(sheetIndex: number): void {
     this.currentSheetIndex = sheetIndex;
     this.columns = this.sheets[sheetIndex].columns;
     this.updateDisplayedData();
   }
+  getColumns(): string[] {
+  return ['category', ...this.columns.slice(1)];
+}
 
 }
