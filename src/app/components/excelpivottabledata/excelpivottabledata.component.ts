@@ -6,14 +6,14 @@ import * as XLSX from 'xlsx';
   styleUrl: './excelpivottabledata.component.css'
 })
 export class ExcelpivottabledataComponent {
-  data: any[] = [];          // Raw data from Excel
-  pivotData: any[] = [];     // Data after pivoting
-  columns: string[] = [];    // List of columns (field names)
-  selectedColumn: string = ''; // Selected column for pivoting
+  sheets: any[] = [];  // Store pivot tables as sheets
+  columns: string[] = [];  // Columns from the first sheet (to display options)
+  selectedColumns: string[] = [];  // Columns selected for display
+  currentSheetIndex: number = 0;  // Index to track the active sheet
 
   constructor() {}
 
-  // Handle the file upload and read the Excel file
+  // Handle file upload and read Excel file
   onFileChange(event: any): void {
     const file = event.target.files[0];
     if (file) {
@@ -22,57 +22,41 @@ export class ExcelpivottabledataComponent {
         const binaryStr = e.target.result;
         const wb = XLSX.read(binaryStr, { type: 'binary' });
 
-        // Assuming the first sheet contains the data
-        const ws = wb.Sheets[wb.SheetNames[0]];
-        this.data = XLSX.utils.sheet_to_json(ws, { header: 1 });
+        this.sheets = wb.SheetNames.map((sheetName: string) => {
+          const ws = wb.Sheets[sheetName];
+          const data = XLSX.utils.sheet_to_json(ws, { header: 1 });
+          const columns = data[0];
+          const rows = data.slice(1);
+          return { sheetName, columns, rows };
+        });
 
-        // Dynamically get column headers (first row of data)
-        this.columns = this.data[0];
-
-        // Remove header from data to prepare for display
-        this.pivotData = this.data.slice(1);
+        // Initialize with the first sheet's columns and rows
+        this.columns = this.sheets[0].columns;
+        this.selectedColumns = [...this.columns];
+        this.updateDisplayedData();
       };
       reader.readAsBinaryString(file);
     }
   }
 
-  // Generate pivot data dynamically
-  generatePivot() {
-    if (this.pivotData.length > 0 && this.selectedColumn) {
-      const pivotResult: any = {};
-      const selectedIndex = this.columns.indexOf(this.selectedColumn);
-
-      // Group data by the selected pivot column (dynamically chosen by the user)
-      this.pivotData.forEach((row: any) => {
-        const key = row[selectedIndex];
-        if (!pivotResult[key]) {
-          pivotResult[key] = {};
-        }
-
-        // Add all other columns to the pivot result
-        this.columns.forEach((col: string, index: number) => {
-          if (index !== selectedIndex) {
-            const cellValue = row[index];
-            if (!pivotResult[key][col]) {
-              pivotResult[key][col] = [];
-            }
-            pivotResult[key][col].push(cellValue); // Collect data in arrays for now
-          }
-        });
-      });
-
-      // Format the pivoted data into a structure for easy display
-      this.pivotData = [];
-      for (const key in pivotResult) {
-        const rowData: any = [key]; // Start with the pivot key (e.g., the selected column value)
-        this.columns.forEach((col) => {
-          if (col !== this.selectedColumn) {
-            rowData.push(pivotResult[key][col]?.join(', ')); // Join values in the same field
-          }
-        });
-        this.pivotData.push(rowData);
-      }
+  // Update data for display based on selected columns
+  updateDisplayedData(): void {
+    if (this.sheets.length > 0) {
+      const sheet = this.sheets[this.currentSheetIndex];
+      const selectedIndices = this.selectedColumns.map((col) =>
+        sheet.columns.indexOf(col)
+      );
+      sheet.displayedData = sheet.rows.map((row:any) =>
+        selectedIndices.map((index) => row[index])
+      );
     }
+  }
+
+  // Switch between different pivot tables (sheets)
+  changeSheet(sheetIndex: number): void {
+    this.currentSheetIndex = sheetIndex;
+    this.columns = this.sheets[sheetIndex].columns;
+    this.updateDisplayedData();
   }
 
 }
