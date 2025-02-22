@@ -32,7 +32,7 @@ export class ExcelpivottabledataComponent {
           const isPivot = this.isPivotSheetData(data);
           
           // Format the pivot data if it's a pivot sheet
-          let formattedData = [];
+          let formattedData:any = [];
           if (isPivot) {
             formattedData = this.formatPivotData(data);
           }
@@ -104,5 +104,6 @@ export class ExcelpivottabledataComponent {
   getColumns(): string[] {
   return ['category', ...this.columns.slice(1)];
 }
+
 
 }
